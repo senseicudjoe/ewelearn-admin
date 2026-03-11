@@ -61,6 +61,7 @@ export const ModulesPage = () => {
       loadModules();
       closeDialog();
     } catch (error) {
+      console.error('Failed to save module', error);
       toast.error('Failed to save module');
     }
   };
