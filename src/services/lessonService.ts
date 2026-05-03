@@ -14,7 +14,7 @@ import {
     Timestamp 
   } from 'firebase/firestore';
   import { db } from '../../firebase.config';
-  import type { Lesson, LessonFormData, LessonStatus } from '../types';
+import type { Lesson, LessonFormData, LessonStatus } from '../types';
   
   const LESSONS_COLLECTION = 'lessons';
   const USERS_COLLECTION = 'users';
@@ -63,7 +63,7 @@ import {
       const q = query(
         collection(db, LESSONS_COLLECTION),
         where('createdBy', '==', teacherId),
-        orderBy('submittedAt', 'desc')
+        orderBy('order', 'asc')
       );
       const snapshot = await getDocs(q);
       return snapshot.docs.map(docSnap => ({
@@ -121,11 +121,24 @@ import {
       };
   
       const docRef = await addDoc(collection(db, LESSONS_COLLECTION), lessonData);
+      // Keep an explicit lessonId field for clients (e.g. mobile)
+      // that expect the Firestore document id to also be present in the doc.
+      await updateDoc(docRef, { lessonId: docRef.id });
       return docRef.id;
     },
   
     // Update lesson (teachers can only update pending/rejected, admins can update any)
-    async update(lessonId: string, data: Partial<LessonFormData>): Promise<void> {
+    // Note: callers may optionally pass workflow fields (status/feedback/review info)
+    // when implementing "resubmit for review" flows.
+    async update(
+      lessonId: string,
+      data: Partial<LessonFormData> & {
+        status?: LessonStatus;
+        feedback?: string;
+        reviewedAt?: Timestamp | null;
+        reviewedBy?: string | null;
+      }
+    ): Promise<void> {
       const docRef = doc(db, LESSONS_COLLECTION, lessonId);
       await updateDoc(docRef, {
         ...data,

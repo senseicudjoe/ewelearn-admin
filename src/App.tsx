@@ -11,7 +11,7 @@ import { LessonsPage } from './pages/LessonPage';
 import { PendingReviewPage } from './pages/admin/PendingReviewPage';
 
 // Protected Route wrapper
-const ProtectedRoute: React.FC<{ 
+const ProtectedRoute: React.FC<{
   children: React.ReactNode;
   adminOnly?: boolean;
 }> = ({ children, adminOnly = false }) => {
@@ -19,8 +19,9 @@ const ProtectedRoute: React.FC<{
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600"></div>
+      <div className="min-h-screen flex flex-col items-center justify-center gap-4 bg-slate-50/80">
+        <div className="h-10 w-10 animate-spin rounded-full border-2 border-slate-200 border-t-purple-600" />
+        <p className="text-sm font-medium text-slate-500">Loading...</p>
       </div>
     );
   }
@@ -37,12 +38,13 @@ const ProtectedRoute: React.FC<{
 };
 
 function AppRoutes() {
-  const { currentUser, loading } = useAuth();
+  const { currentUser, loading, isAdmin } = useAuth();
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600"></div>
+      <div className="min-h-screen flex flex-col items-center justify-center gap-4 bg-slate-50/80">
+        <div className="h-10 w-10 animate-spin rounded-full border-2 border-slate-200 border-t-purple-600" />
+        <p className="text-sm font-medium text-slate-500">Loading...</p>
       </div>
     );
   }
@@ -78,13 +80,37 @@ function AppRoutes() {
         }
       />
 
+      {/*
+        Module-scoped lessons: admins drill in from /modules to see the
+        lessons that belong to a single module.
+      */}
+      <Route
+        path="/modules/:moduleId/lessons"
+        element={
+          <ProtectedRoute adminOnly>
+            <DashboardLayout>
+              <LessonsPage />
+            </DashboardLayout>
+          </ProtectedRoute>
+        }
+      />
+
+      {/*
+        Teachers still have a flat "My Lessons" view (they don't own modules).
+        Admins who hit this URL directly get bounced to /modules instead —
+        there is no unfiltered admin lesson list anymore.
+      */}
       <Route
         path="/lessons"
         element={
           <ProtectedRoute>
-            <DashboardLayout>
-              <LessonsPage />
-            </DashboardLayout>
+            {isAdmin ? (
+              <Navigate to="/modules" replace />
+            ) : (
+              <DashboardLayout>
+                <LessonsPage />
+              </DashboardLayout>
+            )}
           </ProtectedRoute>
         }
       />
